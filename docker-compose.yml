@@ -1,0 +1,37 @@
+# SEO Maturity Grader - Local Development
+version: '3.8'
+
+services:
+  seo-grader-backend:
+    build: .
+    container_name: seo-maturity-grader
+    ports:
+      - "8000:8000"
+    environment:
+      # Required for full functionality (get free keys):
+      - PAGESPEED_API_KEY=${PAGESPEED_API_KEY:-}
+      - SERPAPI_KEY=${SERPAPI_KEY:-}
+      
+      # Optional: Alternative SERP provider
+      - GCS_API_KEY=${GCS_API_KEY:-}
+      - GCS_CX=${GCS_CX:-}
+      
+      # Optional: WHOIS API
+      - WHOISXML_API_KEY=${WHOISXML_API_KEY:-}
+      
+      # Optional: Authority APIs (choose one)
+      - MOZ_ACCESS_ID=${MOZ_ACCESS_ID:-}
+      - MOZ_SECRET_KEY=${MOZ_SECRET_KEY:-}
+      - AHREFS_API_KEY=${AHREFS_API_KEY:-}
+      - MAJESTIC_API_KEY=${MAJESTIC_API_KEY:-}
+      
+      # Application settings
+      - DEBUG=false
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/seo/grader/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped

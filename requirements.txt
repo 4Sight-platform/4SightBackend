@@ -1,0 +1,30 @@
+# SEO Maturity Grader Backend - Dependencies
+# Python 3.10+ required
+
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# HTTP Client with async support
+httpx==0.26.0
+
+# WHOIS lookup fallback
+python-whois==0.8.0
+
+# HTML parsing for on-page SEO analysis
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# Rate limiting and caching
+cachetools==5.3.2
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+respx==0.20.2
+
+# Utilities
+python-dateutil==2.8.2
