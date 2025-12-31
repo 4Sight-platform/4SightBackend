@@ -50,8 +50,13 @@ class Settings(BaseSettings):
     request_timeout_seconds: int = 45  # PageSpeed API can take 20-60s
     max_concurrent_requests: int = 5
     
-    # CORS settings
-    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    # CORS settings - include deployed frontend URLs
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://4-sight-web-frontend.vercel.app",
+        "https://*.vercel.app",
+    ]
     
     class Config:
         env_file = ".env"

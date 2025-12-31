@@ -1,0 +1,19 @@
+# Render.com deployment configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: 4sight-backend
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /seo/grader/health
+    envVars:
+      - key: PAGESPEED_API_KEY
+        sync: false  # Set manually in dashboard
+      - key: DEBUG
+        value: "false"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
