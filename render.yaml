@@ -11,8 +11,14 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /seo/grader/health
     envVars:
+      - key: MONGODB_URL
+        value: "mongodb+srv://4sightplatform_db_user:2005@cluster0.1hybwum.mongodb.net/?appName=Cluster0"
+      - key: MONGODB_DB_NAME
+        value: "4sight"
+      - key: JWT_SECRET
+        value: "foresight_super_secret_key_change_in_production_2024"
       - key: PAGESPEED_API_KEY
-        sync: false  # Set manually in dashboard
+        value: "AIzaSyAaV95PMXm4CUeNOGp9firBLYTKigruDzA"
       - key: DEBUG
         value: "false"
       - key: PYTHON_VERSION
