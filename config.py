@@ -1,5 +1,5 @@
 """
-Configuration management for SEO Maturity Grader.
+Configuration management for 4Sight Backend.
 
 All environment variables are loaded here with their default values.
 Required vs optional status is documented for each.
@@ -13,16 +13,28 @@ class Settings(BaseSettings):
     """
     Application settings loaded from environment variables.
     
-    Environment Variable Reference (FREE APIs ONLY):
+    Environment Variable Reference:
+    - MONGODB_URL: MongoDB connection string
+    - MONGODB_DB_NAME: MongoDB database name
+    - JWT_SECRET: Secret key for JWT token signing
     - PAGESPEED_API_KEY: Google PageSpeed Insights API key (FREE - 25K queries/day)
     
     All other features use built-in fallback heuristics (no API required).
     """
     
     # Application settings
-    app_name: str = "SEO Maturity Grader"
+    app_name: str = "4Sight Backend"
     app_version: str = "1.0.0"
     debug: bool = False
+    
+    # Database (MongoDB)
+    mongodb_url: str = "mongodb+srv://4sightplatform_db_user:2005@cluster0.1hybwum.mongodb.net/?appName=Cluster0"
+    mongodb_db_name: str = "4sight"
+    
+    # JWT Authentication
+    jwt_secret: str = "foresight_super_secret_key_change_in_production_2024"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 1440  # 24 hours
     
     # PageSpeed Insights API (FREE - 25,000 queries/day)
     # Get key at: https://console.cloud.google.com/apis/credentials

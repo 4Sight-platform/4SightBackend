@@ -1,11 +1,10 @@
 """
-SEO Maturity Grader - FastAPI Application
+4Sight Backend - FastAPI Application
 
-Production-quality API for assessing SEO maturity with deterministic scoring.
-
-Endpoints:
-    POST /seo/grader/submit - Submit website for grading
-    GET /seo/grader/health - Health check
+Production-quality API with:
+- SEO Maturity Grader
+- User Authentication (signup/signin)
+- Blog Engagement (votes, comments)
 
 Environment Variables:
     See config.py for complete list and descriptions.
@@ -35,6 +34,9 @@ from evaluators.observed_evaluator import ObservedEvaluator
 from evaluators.scoring import generate_grader_response
 from utils.url_validator import validate_url
 
+# Import database and auth routes
+from routes import auth, engagement
+
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -47,6 +49,16 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
+    # Initialize MongoDB collections
+    logger.info("Initializing MongoDB collections...")
+    try:
+        from database import initialize_collections
+        initialize_collections()
+        logger.info("MongoDB collections initialized successfully!")
+    except Exception as e:
+        logger.error(f"Failed to initialize MongoDB: {e}")
+        raise
+    
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Service status: {get_service_status()}")
     yield
@@ -55,9 +67,9 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title=settings.app_name,
+    title="4Sight Backend",
     version=settings.app_version,
-    description="Deterministic SEO Maturity Grader API",
+    description="4Sight API - SEO Maturity Grader, Authentication, and Blog Engagement",
     lifespan=lifespan,
 )
 
@@ -66,9 +78,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Include auth and engagement routers
+app.include_router(auth.router)
+app.include_router(engagement.router)
 
 
 # Error handlers
@@ -218,8 +234,8 @@ async def submit_grader(request: GraderRequest) -> GraderResponse:
 # Root redirect
 @app.get("/", include_in_schema=False)
 async def root():
-    """Redirect root to docs."""
-    return {"message": "SEO Maturity Grader API", "docs": "/docs"}
+    """Root endpoint."""
+    return {"message": "4Sight Backend API", "docs": "/docs", "health": "/seo/grader/health"}
 
 
 if __name__ == "__main__":
