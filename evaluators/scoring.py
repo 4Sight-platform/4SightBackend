@@ -123,13 +123,16 @@ def identify_top_risks(
         risk_candidates.append((authority_ratio, msg))
     
     # SERP: score out of 5
-    # IMPORTANT: Only include SERP risks if we have real API data (not fallback mode)
-    # When is_approximate=True, it means no SERP API is configured and all values are 0/fallback
+    # IMPORTANT: Only include SERP risks if we have RELIABLE API data
+    # Skip if: 1) Using fallback mode (is_approximate=True), or 2) API returned errors
     serp_ratio = observed.serp_reality / 5.0
     serp_score = observed.serp_reality
-    serp_has_real_data = not raw_serp.is_approximate  # False means fallback mode
     
-    if serp_has_real_data:
+    # Check if SERP data is reliable (not fallback AND no API errors in results)
+    serp_has_errors = any(r.error for r in raw_serp.results) if raw_serp.results else False
+    serp_is_reliable = not raw_serp.is_approximate and not serp_has_errors
+    
+    if serp_is_reliable:
         top10_hits = raw_serp.hits_top10 if raw_serp.hits_top10 is not None else 0
         top30_hits = raw_serp.hits_top30 if raw_serp.hits_top30 is not None else 0
         
