@@ -123,17 +123,22 @@ def identify_top_risks(
         risk_candidates.append((authority_ratio, msg))
     
     # SERP: score out of 5
+    # IMPORTANT: Only include SERP risks if we have real API data (not fallback mode)
+    # When is_approximate=True, it means no SERP API is configured and all values are 0/fallback
     serp_ratio = observed.serp_reality / 5.0
     serp_score = observed.serp_reality
-    top10_hits = raw_serp.hits_top10 if raw_serp.hits_top10 is not None else 0
-    top30_hits = raw_serp.hits_top30 if raw_serp.hits_top30 is not None else 0
+    serp_has_real_data = not raw_serp.is_approximate  # False means fallback mode
     
-    if serp_ratio < 0.5:
-        msg = f"ORGANIC OBSOLESCENCE: {domain} has only {top10_hits} top-10 positions ({top30_hits} in top-30). SERP reality score: {serp_score}/5 - critical visibility gap."
-        risk_candidates.append((serp_ratio, msg))
-    elif serp_ratio < 0.75:
-        msg = f"FRAGMENTED VISIBILITY: {domain} achieving {top10_hits} top-10 rankings but scoring {serp_score}/5 on SERP reality. Inconsistent positioning detected."
-        risk_candidates.append((serp_ratio, msg))
+    if serp_has_real_data:
+        top10_hits = raw_serp.hits_top10 if raw_serp.hits_top10 is not None else 0
+        top30_hits = raw_serp.hits_top30 if raw_serp.hits_top30 is not None else 0
+        
+        if serp_ratio < 0.5:
+            msg = f"ORGANIC OBSOLESCENCE: {domain} has only {top10_hits} top-10 positions ({top30_hits} in top-30). SERP reality score: {serp_score}/5 - critical visibility gap."
+            risk_candidates.append((serp_ratio, msg))
+        elif serp_ratio < 0.75:
+            msg = f"FRAGMENTED VISIBILITY: {domain} achieving {top10_hits} top-10 rankings but scoring {serp_score}/5 on SERP reality. Inconsistent positioning detected."
+            risk_candidates.append((serp_ratio, msg))
     
     # Check declared vs observed gap
     gap = declared.total - observed.total
