@@ -47,7 +47,8 @@ def compute_final_score(
 
 def identify_top_risks(
     declared: DeclaredScoreResult,
-    observed: ObservedScoreResult
+    observed: ObservedScoreResult,
+    website_url: str = ""
 ) -> List[str]:
     """
     Identify top 3 weakest signals as actionable risk statements.
@@ -55,79 +56,111 @@ def identify_top_risks(
     Logic (deterministic):
     1. Rank all scored components by their subscore ratio
     2. Select bottom 3 as risks
-    3. Map to predefined risk templates
+    3. Generate dynamic, site-specific messages with actual metrics
     
     Args:
         declared: Declared evaluation result
         observed: Observed evaluation result
+        website_url: The website URL for context
         
     Returns:
-        List of 3 risk statements
+        List of 3 risk statements with site-specific data
     """
+    # Extract domain name for personalized messages
+    domain = ""
+    if website_url:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(website_url)
+            domain = parsed.netloc.replace("www.", "")
+        except:
+            domain = website_url
+    
+    # Get actual metric values for dynamic messages
+    raw_cwv = observed.raw_cwv
+    raw_serp = observed.raw_serp
+    raw_domain = observed.raw_domain_info
+    
     # Compute ratios for each component
-    # Higher ratio = better performance
     risk_candidates = []
     
     # CWV: score out of 20
     cwv_ratio = observed.core_web_vitals / 20.0
+    cwv_score = observed.core_web_vitals
+    lcp_value = f"{raw_cwv.lcp_ms}ms" if raw_cwv.lcp_ms else "unmeasurable"
+    
     if cwv_ratio < 0.4:
-        risk_candidates.append((cwv_ratio, "cwv_critical"))
+        msg = f"CRITICAL PERFORMANCE COLLAPSE: {domain} shows extreme latency (LCP: {lcp_value}). Scoring {cwv_score}/20 on Core Web Vitals - actively hemorrhaging users."
+        risk_candidates.append((cwv_ratio, msg))
     elif cwv_ratio < 0.6:
-        risk_candidates.append((cwv_ratio, "cwv_poor"))
+        msg = f"TECHNICAL DECAY: {domain} has major performance issues (LCP: {lcp_value}). Core Web Vitals at {cwv_score}/20 indicates structural speed problems."
+        risk_candidates.append((cwv_ratio, msg))
     elif cwv_ratio < 0.8:
-        risk_candidates.append((cwv_ratio, "cwv_moderate"))
+        msg = f"UNSTABLE PERFORMANCE: {domain} scoring {cwv_score}/20 on Core Web Vitals. Speed inconsistencies affecting user experience."
+        risk_candidates.append((cwv_ratio, msg))
     
     # On-page: score out of 15
     onpage_ratio = observed.onpage / 15.0
+    onpage_score = observed.onpage
+    
     if onpage_ratio < 0.5:
-        risk_candidates.append((onpage_ratio, "onpage_poor"))
+        msg = f"STRUCTURAL CATASTROPHE: {domain} critical SEO signals scoring only {onpage_score}/15. Title, Meta, or H1 tags are missing or misconfigured."
+        risk_candidates.append((onpage_ratio, msg))
     elif onpage_ratio < 0.75:
-        risk_candidates.append((onpage_ratio, "onpage_moderate"))
+        msg = f"SIGNAL MISALIGNMENT: {domain} on-page SEO at {onpage_score}/15. Search engines may struggle to interpret page relevance."
+        risk_candidates.append((onpage_ratio, msg))
     
     # Authority: score out of 10
     authority_ratio = observed.authority_proxies / 10.0
+    authority_score = observed.authority_proxies
+    domain_age = f"{raw_domain.age_years} years" if raw_domain.age_years else "unknown age"
+    
     if authority_ratio < 0.5:
-        risk_candidates.append((authority_ratio, "authority_poor"))
+        msg = f"AUTHORITY VOID: {domain} ({domain_age}) shows minimal trust signals. Authority score {authority_score}/10 - invisible to organic ecosystem."
+        risk_candidates.append((authority_ratio, msg))
     elif authority_ratio < 0.75:
-        risk_candidates.append((authority_ratio, "authority_moderate"))
+        msg = f"AUTHORITY DEFICIT: {domain} trust signals at {authority_score}/10 significantly lag behind competitors in this space."
+        risk_candidates.append((authority_ratio, msg))
     
     # SERP: score out of 5
     serp_ratio = observed.serp_reality / 5.0
+    serp_score = observed.serp_reality
+    top10_hits = raw_serp.hits_top10 if raw_serp.hits_top10 is not None else 0
+    top30_hits = raw_serp.hits_top30 if raw_serp.hits_top30 is not None else 0
+    
     if serp_ratio < 0.5:
-        risk_candidates.append((serp_ratio, "serp_reality_poor"))
+        msg = f"ORGANIC OBSOLESCENCE: {domain} has only {top10_hits} top-10 positions ({top30_hits} in top-30). SERP reality score: {serp_score}/5 - critical visibility gap."
+        risk_candidates.append((serp_ratio, msg))
     elif serp_ratio < 0.75:
-        risk_candidates.append((serp_ratio, "serp_reality_moderate"))
+        msg = f"FRAGMENTED VISIBILITY: {domain} achieving {top10_hits} top-10 rankings but scoring {serp_score}/5 on SERP reality. Inconsistent positioning detected."
+        risk_candidates.append((serp_ratio, msg))
     
     # Check declared vs observed gap
     gap = declared.total - observed.total
     if gap > 10:
-        risk_candidates.append((0.0, "declared_high"))
+        msg = f"CAPABILITY HALLUCINATION: {domain} self-assessed at {declared.total}/50 but observed reality is {observed.total}/50 - a {gap}-point disconnect from technical truth."
+        risk_candidates.append((0.0, msg))
     elif gap < -10:
-        risk_candidates.append((0.0, "observed_high"))
+        msg = f"UNDERUTILIZED ENGINE: {domain} technical execution ({observed.total}/50) exceeds strategic alignment ({declared.total}/50). {abs(gap)} points of untapped potential."
+        risk_candidates.append((0.0, msg))
     
     # Sort by ratio (ascending = weakest first)
     risk_candidates.sort(key=lambda x: x[0])
     
     # Take top 3 unique risks
-    seen_templates = set()
     risks = []
+    for _, msg in risk_candidates:
+        if len(risks) < 3:
+            risks.append(msg)
     
-    for _, template_key in risk_candidates:
-        if template_key not in seen_templates and len(risks) < 3:
-            risks.append(RISK_TEMPLATES[template_key])
-            seen_templates.add(template_key)
-    
-    # If we don't have 3 risks, add generic ones
+    # If we don't have 3 risks, add context-aware fallbacks
     while len(risks) < 3:
-        if "cwv_moderate" not in seen_templates:
-            risks.append(RISK_TEMPLATES.get("cwv_moderate", "Monitor Core Web Vitals"))
-            seen_templates.add("cwv_moderate")
-        elif "onpage_moderate" not in seen_templates:
-            risks.append(RISK_TEMPLATES.get("onpage_moderate", "Review on-page optimization"))
-            seen_templates.add("onpage_moderate")
+        if cwv_ratio >= 0.8 and len([r for r in risks if "Web Vitals" in r]) == 0:
+            risks.append(f"MONITORING ADVISED: {domain} Core Web Vitals are acceptable but should be continuously monitored for regression.")
+        elif onpage_ratio >= 0.75 and len([r for r in risks if "on-page" in r.lower()]) == 0:
+            risks.append(f"OPTIMIZATION OPPORTUNITY: {domain} on-page elements are functional but could be enhanced for better search visibility.")
         else:
-            # Generic fallback
-            risks.append("Continue monitoring SEO performance metrics")
+            risks.append(f"CONTINUOUS IMPROVEMENT: {domain} should maintain regular SEO audits to stay competitive in search rankings.")
             break
     
     return risks[:3]
@@ -135,7 +168,8 @@ def identify_top_risks(
 
 def generate_grader_response(
     declared: DeclaredScoreResult,
-    observed: ObservedScoreResult
+    observed: ObservedScoreResult,
+    website_url: str = ""
 ) -> GraderResponse:
     """
     Generate the complete presentation-ready response.
@@ -146,6 +180,7 @@ def generate_grader_response(
     Args:
         declared: Declared evaluation result
         observed: Observed evaluation result
+        website_url: The analyzed website URL for context
         
     Returns:
         GraderResponse ready for JSON serialization
@@ -159,8 +194,8 @@ def generate_grader_response(
     # Compute gap description
     gap_description = compute_gap_description(declared.total, observed.total)
     
-    # Identify risks
-    top_risks = identify_top_risks(declared, observed)
+    # Identify risks with site-specific context
+    top_risks = identify_top_risks(declared, observed, website_url)
     
     # Build dimension scores
     dimension_scores = DimensionScores(

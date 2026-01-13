@@ -211,8 +211,8 @@ async def submit_grader(request: GraderRequest) -> GraderResponse:
         )
         logger.debug(f"Observed score: {observed_result.total} [request_id={request_id}]")
         
-        # Generate final response
-        response = generate_grader_response(declared_result, observed_result)
+        # Generate final response with site-specific context
+        response = generate_grader_response(declared_result, observed_result, normalized_url)
         
         logger.info(
             f"Grader complete: score={response.total_score}, stage={response.stage} "
